@@ -1,12 +1,17 @@
 package com.ab.springreactoroperations;
 
+import org.assertj.core.api.ClassAssert;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.function.Tuple2;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CreationOperationTest {
@@ -89,6 +94,150 @@ public class CreationOperationTest {
         .verifyComplete();
   }
 
+  @Test
+  public void zipFluxes() {
+    Flux<String> characterFlux = Flux.just("Garfield", "Kojak", "Barbossa");
+    Flux<String> foodFlux = Flux.just("Lasagna", "Lollipops", "Apples");
+
+    Flux<Tuple2<String, String>> zippedFlux = Flux.zip(characterFlux, foodFlux);
+    StepVerifier.create(zippedFlux)
+        .expectNextMatches(p ->
+            p.getT1().equals("Garfield") && p.getT2().equals("Lasagna"))
+        .expectNextMatches(p ->
+            p.getT1().equals("Kojak") && p.getT2().equals("Lollipops"))
+        .expectNextMatches(p ->
+            p.getT1().equals("Barbossa") && p.getT2().equals("Apples"))
+        .verifyComplete();
+  }
+
+  @Test
+  public void zipFluxesToObject() {
+    Flux<String> characterFlux = Flux.just("Garfield", "Kojak", "Barbossa");
+    Flux<String> foodFlux = Flux.just("Lasagna", "Lollipops", "Apples");
+
+    Flux<String> zippedFlux = Flux.zip(characterFlux, foodFlux, (character, food) -> character + " eats " + food);
+
+    StepVerifier.create(zippedFlux)
+        .expectNext("Garfield eats Lasagna")
+        .expectNext("Kojak eats Lollipops")
+        .expectNext("Barbossa eats Apples")
+        .verifyComplete();
+  }
+
+  @Test
+  public void firstFlux() {
+    Flux<String> slowFlux = Flux.just("tortoise", "snail", "sloth").delaySubscription(Duration.ofMillis(100));
+    Flux<String> fastFlux = Flux.just("hare", "cheetah", "squirrel");
+
+    Flux<String> firstFlux = Flux.first(slowFlux, fastFlux);
+
+    StepVerifier.create(firstFlux)
+        .expectNext("hare")
+        .expectNext("cheetah")
+        .expectNext("squirrel")
+        .verifyComplete();
+  }
+
+  @Test
+  public void skipFew() {
+    Flux<String> skipFlux = Flux
+        .just("one", "two", "skip a few", "ninety nine", "one hundred")
+        .skip(3);
+    StepVerifier.create(skipFlux)
+        .expectNext("ninety nine")
+        .expectNext("one hundred")
+        .verifyComplete();
+  }
+
+  @Test
+  public void skipAFewSeconds() {
+    Flux<String> skipFlux = Flux.just("one", "two", "skip a few", "ninety nine", "one hundred")
+        .delayElements(Duration.ofSeconds(1))
+        .skip(Duration.ofSeconds(4));
+    StepVerifier.create(skipFlux)
+        .expectNext("ninety nine", "one hundred")
+        .verifyComplete();
+  }
+
+  @Test
+  public void takeFlux() {
+    Flux<String> nationalParkFlux = Flux
+        .just("Yellowstone", "Yosemite", "Grand Canyon", "Zion", "Grand Teton")
+        .take(3);
+    StepVerifier.create(nationalParkFlux)
+        .expectNext("Yellowstone")
+        .expectNext("Yosemite")
+        .expectNext("Grand Canyon")
+        .verifyComplete();
+  }
+
+  @Test
+  public void filterFlux() {
+    Flux<String> nationalParkFlux = Flux
+        .just("Yellowstone", "Yosemite", "Grand Canyon", "Zion", "Grand Teton")
+        .filter(park -> !park.contains(" "));
+    StepVerifier.create(nationalParkFlux)
+        .expectNext("Yellowstone")
+        .expectNext("Yosemite")
+        .expectNext("Zion")
+        .verifyComplete();
+  }
+
+  @Test
+  public void distinctFlux() {
+    Flux<String> animalFlux = Flux
+        .just("dog", "cat", "bird", "dog", "bird", "anteater")
+        .distinct();
+    StepVerifier.create(animalFlux)
+        .expectNext("dog")
+        .expectNext("cat")
+        .expectNext("bird")
+        .expectNext("anteater")
+        .verifyComplete();
+  }
+
+  @Test
+  public void mapFlux() {
+    Flux<Player> playerFlux = Flux
+        .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+        .map(n -> {
+          String[] split = n.split("\\s");
+          return new Player(split[0], split[1]);
+        });
+    StepVerifier.create(playerFlux)
+        .expectNext(new Player("Michael", "Jordan"))
+        .expectNext(new Player("Scottie", "Pippen"))
+        .expectNext(new Player("Steve", "Kerr"))
+        .verifyComplete();
+  }
+
+  @Test
+  public void flatMap() {
+    class Player {private Player(String firstName, String lastName){}}
+
+    Flux<Player> playerFlux = Flux
+        .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+        .flatMap(n ->
+            Mono.just(n)
+                .map(p -> {
+                  String[] split = p.split("\\s");
+                  return new Player(split[0], split[1]);
+                }))
+        .subscribeOn(Schedulers.parallel());
+
+    List<Player> playerList = Arrays.asList(
+        new Player("Michael", "Jordan"),
+        new Player("Scottie", "Pippen"),
+        new Player("Steve", "Kerr"));
+
+    StepVerifier.create(playerFlux)
+        .expectNextMatches(playerList::contains)
+        .expectNextMatches(playerList::contains)
+        .expectNextMatches(playerList::contains)
+        .verifyComplete();
+
+  }
+
   private void executeStepVerifierOnFruitFlux(Publisher<String> fruitFlux) {
     StepVerifier.create(fruitFlux)
         .expectNext("Apple")
@@ -97,5 +246,13 @@ public class CreationOperationTest {
         .expectNext("Banana")
         .expectNext("Strawberry")
         .verifyComplete();
+  }
+
+  private static class Player {
+    Player(String firstName, String lastName){ }
+    @Override
+    public boolean equals(Object object) {
+      return this == object;
+    }
   }
 }
