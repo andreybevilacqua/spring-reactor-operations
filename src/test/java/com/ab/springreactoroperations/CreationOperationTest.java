@@ -25,7 +25,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void createFluxFromArray() {
+  public void createFluxFromArrayTest() {
     String[] fruits = new String[] {"Apple", "Orange", "Grape", "Banana", "Strawberry"};
     Flux<String> fruitFlux = Flux.fromArray(fruits);
 
@@ -33,7 +33,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void createFluxFromIterable() {
+  public void createFluxFromIterableTest() {
     List<String> fruits = new ArrayList<>();
     fruits.add("Apple");
     fruits.add("Orange");
@@ -46,7 +46,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void createFluxRange() {
+  public void createFluxRangeTest() {
     Flux<Integer> intervalFlux = Flux.range(1, 5);
     StepVerifier.create(intervalFlux)
         .expectNext(1)
@@ -58,7 +58,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void createFluxInterval() {
+  public void createFluxIntervalTest() {
     Flux<Long> intervalFlux = Flux.interval(Duration.ofSeconds(1))
         .take(5); //  Take operation defines the the limit of results.
 
@@ -72,7 +72,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void mergeFluxes() {
+  public void mergeFluxesTest() {
     Flux<String> characterFlux = Flux
         .just("Garfield", "Kojak", "Barbossa")
         .delayElements(Duration.ofMillis(500));
@@ -95,7 +95,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void zipFluxes() {
+  public void zipFluxesTest() {
     Flux<String> characterFlux = Flux.just("Garfield", "Kojak", "Barbossa");
     Flux<String> foodFlux = Flux.just("Lasagna", "Lollipops", "Apples");
 
@@ -111,7 +111,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void zipFluxesToObject() {
+  public void zipFluxesToObjectTest() {
     Flux<String> characterFlux = Flux.just("Garfield", "Kojak", "Barbossa");
     Flux<String> foodFlux = Flux.just("Lasagna", "Lollipops", "Apples");
 
@@ -125,7 +125,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void firstFlux() {
+  public void firstFluxTest() {
     Flux<String> slowFlux = Flux.just("tortoise", "snail", "sloth").delaySubscription(Duration.ofMillis(100));
     Flux<String> fastFlux = Flux.just("hare", "cheetah", "squirrel");
 
@@ -139,7 +139,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void skipFew() {
+  public void skipFewTest() {
     Flux<String> skipFlux = Flux
         .just("one", "two", "skip a few", "ninety nine", "one hundred")
         .skip(3);
@@ -150,7 +150,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void skipAFewSeconds() {
+  public void skipAFewSecondsTest() {
     Flux<String> skipFlux = Flux.just("one", "two", "skip a few", "ninety nine", "one hundred")
         .delayElements(Duration.ofSeconds(1))
         .skip(Duration.ofSeconds(4));
@@ -160,7 +160,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void takeFlux() {
+  public void takeFluxTest() {
     Flux<String> nationalParkFlux = Flux
         .just("Yellowstone", "Yosemite", "Grand Canyon", "Zion", "Grand Teton")
         .take(3);
@@ -172,7 +172,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void filterFlux() {
+  public void filterFluxTest() {
     Flux<String> nationalParkFlux = Flux
         .just("Yellowstone", "Yosemite", "Grand Canyon", "Zion", "Grand Teton")
         .filter(park -> !park.contains(" "));
@@ -184,7 +184,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void distinctFlux() {
+  public void distinctFluxTest() {
     Flux<String> animalFlux = Flux
         .just("dog", "cat", "bird", "dog", "bird", "anteater")
         .distinct();
@@ -197,7 +197,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void mapFlux() {
+  public void mapFluxTest() {
     Flux<Player> playerFlux = Flux
         .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
         .map(n -> {
@@ -212,7 +212,7 @@ public class CreationOperationTest {
   }
 
   @Test
-  public void flatMap() {
+  public void flatMapFluxTest() {
     class Player {private Player(String firstName, String lastName){}}
 
     Flux<Player> playerFlux = Flux
@@ -236,6 +236,17 @@ public class CreationOperationTest {
         .expectNextMatches(playerList::contains)
         .verifyComplete();
 
+  }
+
+  @Test
+  public void bufferFluxTest() {
+    Flux<String> fruitFlux = Flux.just("apple", "orange", "banana", "kiwi", "strawberry");
+    Flux<List<String>> bufferedFlux = fruitFlux.buffer(3);
+
+    StepVerifier.create(bufferedFlux)
+        .expectNext(Arrays.asList("apple", "orange", "banana"))
+        .expectNext(Arrays.asList("kiwi", "strawberry"))
+        .verifyComplete();
   }
 
   private void executeStepVerifierOnFruitFlux(Publisher<String> fruitFlux) {
